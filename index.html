@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pathologic Classic HD — Custom Resolution UI Generator v1.0</title>
+  <script src="jszip.min.js"></script>
+  <style>
+    .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    select#langSelect {
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: #1d1b18;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23bdb7aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      color: #e2dfd7;
+      border: 1px solid #453f34;
+      border-radius: 4px;
+      padding: 6px 32px 6px 12px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    select#langSelect:hover { border-color: #6e624b; }
+    select#langSelect:focus { outline: none; border-color: #b89028; }
+    .title-tail { white-space: nowrap; }
+    .ver-badge {
+      font-family: monospace;
+      font-size: 0.45em;
+      font-weight: 400;
+      color: #8c867a;
+      margin-left: 4px;
+      vertical-align: super;
+      line-height: 0;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #141311;
+      color: #e2dfd7;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.55;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      color: #d4af37;
+      font-size: 1.65rem;
+      letter-spacing: 0.02em;
+      margin: 0 0 0.3rem 0;
+    }
+    a { color: #e0b84c; text-decoration: none; border-bottom: 1px solid rgba(224, 184, 76, 0.35); }
+    a:hover { border-bottom-color: #e0b84c; }
+    .card {
+      background: #1d1b18;
+      border: 1px solid #38332a;
+      box-shadow: inset 0 0 0 1px #24211c;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .card-title {
+      font-family: Georgia, "Times New Roman", serif;
+      color: #cbb26a;
+      font-size: 1.05rem;
+      letter-spacing: 0.03em;
+    }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    label { display: flex; flex-direction: column; font-size: 0.9rem; gap: 4px; color: #bdb7aa; }
+    label.is-disabled { color: #5e5a50; cursor: not-allowed; }
+    input[type="number"] {
+      background: #11100e;
+      border: 1px solid #453f34;
+      color: #f0ece1;
+      padding: 8px 10px;
+      border-radius: 4px;
+      width: 120px;
+      font-size: 1rem;
+    }
+    input[type="number"]:focus { outline: none; border-color: #b89028; }
+    button {
+      background: #b89028;
+      color: #12110f;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:hover { background: #d4aa38; }
+    button:disabled { background: #36332c; color: #757065; cursor: not-allowed; }
+    .preset {
+      background: #26231e;
+      color: #d6d0c4;
+      border: 1px solid #3f3a30;
+      padding: 6px 10px;
+      font-weight: 400;
+      font-size: 0.85rem;
+    }
+    .preset:hover { background: #332f28; border-color: #6e624b; }
+    code { background: #11100e; padding: 2px 5px; border-radius: 3px; color: #d8c79e; font-size: 0.88em; }
+    pre {
+      background: #11100e;
+      border: 1px solid #302c24;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 0.88rem;
+      color: #d8c79e;
+      overflow-x: auto;
+    }
+    .warn { color: #d97b59; font-size: 0.86rem; margin-top: 8px; display: none; }
+    #log { font-family: monospace; font-size: 0.85rem; color: #a8a296; margin-top: 12px; white-space: pre-wrap; }
+    footer { margin-top: 32px; font-size: 0.8rem; color: #6e695f; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <h1><span data-i18n="titlePrefix">Pathologic Classic HD — Custom UI</span> <span class="title-tail"><span data-i18n="titleEnd">Generator</span><sup class="ver-badge">v1.0</sup></span></h1>
+    <select id="langSelect" aria-label="Language" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="ru">Русский</option>
+      <option value="pl">Polski</option>
+      <option value="it">Italiano</option>
+    </select>
+  </div>
+  <p data-i18n="subtitle">Generate native UI layouts and loading screens for any widescreen or ultrawide resolution (21:9, 32:9, 16:10, 48:9) directly from your original game archives. Everything runs locally in your browser.</p>
+
+  <div class="card">
+    <div class="card-title" data-i18n="card1">1. Target Resolution</div>
+    <div class="row" style="margin-top: 12px;">
+      <button type="button" class="preset" onclick="setRes(5120, 1440)">5120×1440 (32:9)</button>
+      <button type="button" class="preset" onclick="setRes(3840, 1080)">3840×1080 (32:9)</button>
+      <button type="button" class="preset" onclick="setRes(3840, 1600)">3840×1600 (24:10)</button>
+      <button type="button" class="preset" onclick="setRes(2560, 1600)">2560×1600 (16:10)</button>
+    </div>
+    <div class="row">
+      <label><span data-i18n="widthLabel">Width (XRes)</span><input type="number" id="width" value="5120" min="1920" oninput="onResChange()" /></label>
+      <label><span data-i18n="heightLabel">Height (YRes)</span><input type="number" id="height" value="1440" min="1080" oninput="onResChange()" /></label>
+    </div>
+    <div id="resWarn" class="warn" data-i18n="resWarn">Standard resolutions up to 1920×1200 are already built into the game. Enter a higher resolution (e.g. 2560×1440, 3440×1440, 5120×1440).</div>
+    <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+      <input type="checkbox" id="stretchBg" />
+      <span data-i18n="optStretch">Stretch fullscreen menu & ending backgrounds to fill screen</span>
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="card2">2. Layout Options &amp; Game Archives</div>
+
+    <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="fixMapZoom" checked />
+        <span data-i18n="optMap"><strong>Fix map zoom glitch (width &gt; 2048px)</strong> — caps map canvas at 2044px with side bars to prevent wheel-zoom flickering</span>
+      </label>
+      <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="fixLoading" checked />
+        <span data-i18n="optLoading">Fix loading screens (requires <code>Textures.vfs</code>)</span>
+      </label>
+      <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="compactDialog" />
+        <span data-i18n="optDialog">Compact centered dialog window (don't stretch black bars across 32:9+)</span>
+      </label>
+      <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="centerHud" />
+        <span data-i18n="optHud">Center HUD elements (constrains status bars &amp; icons to central 21:9 / 16:9 safe zone on 32:9+)</span>
+      </label>
+
+    </div>
+
+    <p style="font-size: 0.88rem; color: #a8a296; margin-top: 12px;" data-i18n="filePrompt">
+      Select <code>UI.vfs</code> and <code>Textures.vfs</code> from your game's <code>data/</code> folder:
+    </p>
+    <input type="file" id="fileInput" accept=".vfs" multiple />
+    <div style="margin-top: 16px;">
+      <button id="generateBtn" onclick="generateZip()" disabled data-i18n="generateBtn">Generate & Download ZIP</button>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="card3">3. Installation</div>
+    <ol style="font-size: 0.9rem; color: #b5afa2; padding-left: 20px; margin-bottom: 0;">
+      <li data-i18n="step1">Extract the downloaded ZIP archive into your game's <code>data/</code> directory so that <code>UI/</code> and <code>Textures/</code> sit alongside <code>UI.vfs</code> and <code>Textures.vfs</code>.</li>
+      <li>
+        <span data-i18n="step2">Open <code>data/config.ini</code> and set your resolution under <code>[Video]</code>:</span>
+        <pre id="iniPreview">XRes = 5120
+YRes = 1440</pre>
+      </li>
+      <li data-i18n="step3">Launch the game. To uninstall, delete the extracted <code>data/UI/</code> and <code>data/Textures/</code> folders (or only the generated files if you have other custom files in those folders).</li>
+    </ol>
+  </div>
+
+
+  <footer>
+    <span data-i18n="footerNote">Community tool • No original game assets are hosted or distributed on this page.</span><br />
+    Inspired by <a href="https://www.nexusmods.com/pathologicclassichd/mods/73" target="_blank" rel="noopener noreferrer">UltraWide fix</a><br />
+    Copyright © 2026 Murzoned • Licensed for non-commercial use only
+  </footer>
+
+  <script>
+        const I18N = {
+      en: {
+        titlePrefix: 'Pathologic Classic HD — Custom UI',
+        titleEnd: 'Generator',
+        subtitle: 'Generate native UI layouts and loading screens for any widescreen or ultrawide resolution (21:9, 32:9, 16:10, 48:9) directly from your original game archives. Everything runs locally in your browser.',
+        card1: '1. Target Resolution',
+        widthLabel: 'Width (XRes)',
+        heightLabel: 'Height (YRes)',
+        resWarn: 'Standard resolutions up to 1920×1200 are already built into the game. Enter a higher resolution (e.g. 2560×1440, 3440×1440, 5120×1440).',
+        card2: '2. Layout Options & Game Archives',
+        optMap: '<strong>Fix map zoom glitch (width &gt; 2048px)</strong> — caps map canvas at 2044px with side bars to prevent wheel-zoom flickering',
+        optLoading: '<strong>Fix ultrawide loading screens</strong> — prevents vertical cropping on aspect ratios &gt; 2.0 (requires <code>Textures.vfs</code>)',
+        optDialog: '<strong>Compact centered dialog window</strong> — keeps dialog panels centered instead of stretching letterbox bars across 32:9+',
+        optHud: '<strong>Center HUD elements (32:9+)</strong> — constrains status bars &amp; icons to a central 16:9 safe zone',
+        optStretch: '<strong>Stretch menu &amp; ending backgrounds</strong> — fills the entire screen instead of preserving 16:9 with black pillarboxes',
+        filePrompt: 'Select <code>UI.vfs</code> and <code>Textures.vfs</code> from your game\'s <code>data/</code> folder:',
+        generateBtn: 'Generate & Download ZIP',
+        card3: '3. Installation',
+        step1: 'Extract the downloaded ZIP archive into your game\'s <code>data/</code> directory so that <code>UI/</code> and <code>Textures/</code> sit alongside <code>UI.vfs</code> and <code>Textures.vfs</code>.',
+        step2: 'Open <code>data/config.ini</code> and set your resolution under <code>[Video]</code>:',
+        step3: 'Launch the game. To uninstall, delete the extracted <code>data/UI/</code> and <code>data/Textures/</code> folders (or only the generated files if you have other custom files in those folders).',
+        footerNote: 'Community tool • No original game assets are hosted or distributed on this page.',
+        logReady: 'Selected {n} file(s). Ready to generate.',
+        logReading: 'Reading archives...',
+        logTex: 'Processing loading screen textures...',
+        logPacking: 'Packing ZIP archive...',
+        logNoFiles: 'No matching UI XMLs found. Make sure you selected data/UI.vfs.',
+        logDone: 'Done! Packed {xml} XML(s) and {tex} loading screen(s) into {zip}'
+      },
+      ru: {
+        titlePrefix: 'Мор (Утопия) Classic HD — Генератор',
+        titleEnd: 'UI',
+        subtitle: 'Генератор нативного интерфейса и загрузочных экранов для любых широкоформатных и сверхшироких разрешений (21:9, 32:9, 16:10, 48:9) напрямую из оригинальных архивов игры. Вся обработка происходит локально в браузере.',
+        card1: '1. Целевое разрешение',
+        widthLabel: 'Ширина (XRes)',
+        heightLabel: 'Высота (YRes)',
+        resWarn: 'Стандартные разрешения до 1920×1200 уже встроены в игру. Введите более высокое разрешение (например, 2560×1440, 3440×1440, 5120×1440).',
+        card2: '2. Параметры интерфейса и архивы игры',
+        optMap: '<strong>Исправить мерцание зума карты (ширина &gt; 2048px)</strong> — ограничивает полотно карты 2044px по центру с чёрными полями',
+        optLoading: '<strong>Исправить загрузочные экраны</strong> — убирает обрезку по вертикали при соотношении сторон &gt; 2.0 (требуется <code>Textures.vfs</code>)',
+        optDialog: '<strong>Компактное окно диалогов</strong> — центрирует панель диалога вместо растягивания полос на весь экран 32:9+',
+        optHud: '<strong>Центрировать элементы HUD (32:9+)</strong> — переносит индикаторы состояния и уведомлений в центральную зону 16:9',
+        optStretch: '<strong>Растягивать фоны меню и концовок</strong> — заполняет весь экран вместо сохранения пропорций 16:9 с чёрными полосами',
+        filePrompt: 'Выберите <code>UI.vfs</code> и <code>Textures.vfs</code> из папки <code>data/</code> вашей игры:',
+        generateBtn: 'Сгенерировать и скачать ZIP',
+        card3: '3. Установка',
+        step1: 'Распакуйте скачанный ZIP-архив в папку <code>data/</code> игры так, чтобы папки <code>UI/</code> и <code>Textures/</code> оказались рядом с <code>UI.vfs</code> и <code>Textures.vfs</code>.',
+        step2: 'Откройте <code>data/config.ini</code> и укажите ваше разрешение в секции <code>[Video]</code>:',
+        step3: 'Запустите игру. Для удаления сотрите распакованные папки <code>data/UI/</code> и <code>data/Textures/</code> (либо только сгенерированные файлы, если в этих папках уже были ваши моды).',
+        footerNote: 'Фанатская утилита • Оригинальные ресурсы игры не хранятся и не распространяются на этой странице.',
+        logReady: 'Выбрано файлов: {n}. Готово к генерации.',
+        logReading: 'Чтение архивов...',
+        logTex: 'Обработка текстур загрузочных экранов...',
+        logPacking: 'Упаковка ZIP-архива...',
+        logNoFiles: 'Подходящие XML не найдены. Убедитесь, что выбран файл data/UI.vfs.',
+        logDone: 'Готово! Упаковано {xml} XML и {tex} загрузочных экранов в {zip}'
+      },
+      pl: {
+        titlePrefix: 'Pathologic Classic HD — Generator',
+        titleEnd: 'UI',
+        subtitle: 'Wygeneruj natywne układy interfejsu oraz ekrany ładowania dla dowolnej rozdzielczości panoramicznej i ultrapanoramicznej (21:9, 32:9, 16:10, 48:9) bezpośrednio z oryginalnych archiwów gry. Wszystko działa lokalnie w przeglądarce.',
+        card1: '1. Docelowa rozdzielczość',
+        widthLabel: 'Szerokość (XRes)',
+        heightLabel: 'Wysokość (YRes)',
+        resWarn: 'Standardowe rozdzielczości do 1920×1200 są już wbudowane w grę. Wpisz wyższą rozdzielczość (np. 2560×1440, 3440×1440, 5120×1440).',
+        card2: '2. Opcje układu i archiwa gry',
+        optMap: '<strong>Napraw migotanie przybliżenia mapy (szerokość &gt; 2048px)</strong> — ogranicza obszar mapy do 2044px na środku z czarnymi pasami po bokach',
+        optLoading: '<strong>Napraw ekrany ładowania ultrawide</strong> — zapobiega przycinaniu w pionie przy proporcjach &gt; 2.0 (wymaga <code>Textures.vfs</code>)',
+        optDialog: '<strong>Kompaktowe okno dialogowe</strong> — utrzymuje panele dialogowe na środku zamiast rozciągać paski na cały ekran 32:9+',
+        optHud: '<strong>Wyśrodkuj elementy HUD (32:9+)</strong> — przenosi paski stanu i ikony powiadomień do centralnej strefy 16:9',
+        optStretch: '<strong>Rozciągnij tła menu i zakończeń</strong> — wypełnia cały ekran zamiast zachowywać proporcje 16:9 z czarnymi pasami',
+        filePrompt: 'Wybierz pliki <code>UI.vfs</code> oraz <code>Textures.vfs</code> z folderu <code>data/</code> gry:',
+        generateBtn: 'Generuj i pobierz ZIP',
+        card3: '3. Instalacja',
+        step1: 'Wypakuj pobrane archiwum ZIP bezpośrednio do folderu <code>data/</code> gry, tak aby katalogi <code>UI/</code> i <code>Textures/</code> znalazły się obok <code>UI.vfs</code> i <code>Textures.vfs</code>.',
+        step2: 'Otwórz <code>data/config.ini</code> i ustaw swoją rozdzielczość w sekcji <code>[Video]</code>:',
+        step3: 'Uruchom grę. Aby odinstalować, usuń wypakowane foldery <code>data/UI/</code> i <code>data/Textures/</code> (lub tylko wygenerowane pliki, jeśli masz tam inne modyfikacje).',
+        footerNote: 'Narzędzie społeczności • Na tej stronie nie są przechowywane ani udostępniane oryginalne pliki gry.',
+        logReady: 'Wybrano plików: {n}. Gotowe do generowania.',
+        logReading: 'Odczytywanie archiwów...',
+        logTex: 'Przetwarzanie ekranów ładowania...',
+        logPacking: 'Pakowanie archiwum ZIP...',
+        logNoFiles: 'Nie znaleziono pasujących plików XML. Upewnij się, że wybrano data/UI.vfs.',
+        logDone: 'Gotowe! Spakowano {xml} plików XML oraz {tex} ekranów ładowania do {zip}'
+      },
+      it: {
+        titlePrefix: 'Pathologic Classic HD — Generatore',
+        titleEnd: 'UI',
+        subtitle: 'Genera layout UI nativi e schermate di caricamento corrette per qualsiasi risoluzione widescreen o ultrawide (21:9, 32:9, 16:10, 48:9) direttamente dagli archivi originali del gioco. Tutto viene elaborato localmente nel browser.',
+        card1: '1. Risoluzione di destinazione',
+        widthLabel: 'Larghezza (XRes)',
+        heightLabel: 'Altezza (YRes)',
+        resWarn: 'Le risoluzioni standard fino a 1920×1200 sono già incluse nel gioco. Inserisci una risoluzione superiore (es. 2560×1440, 3440×1440, 5120×1440).',
+        card2: '2. Opzioni layout e archivi di gioco',
+        optMap: '<strong>Correggi sfarfallio zoom mappa (larghezza &gt; 2048px)</strong> — limita la mappa a 2044px al centro con bande nere laterali',
+        optLoading: '<strong>Correggi schermate di caricamento ultrawide</strong> — evita il ritaglio verticale con proporzioni &gt; 2.0 (richiede <code>Textures.vfs</code>)',
+        optDialog: '<strong>Finestra di dialogo compatta</strong> — mantiene i pannelli di dialogo centrati invece di estendere le bande su 32:9+',
+        optHud: '<strong>Centra elementi HUD (32:9+)</strong> — limita barre di stato e icone a un\'area centrale 16:9',
+        optStretch: '<strong>Adatta sfondi menu e finali</strong> — riempie l\'intero schermo invece di mantenere il formato 16:9 con bande nere',
+        filePrompt: 'Seleziona <code>UI.vfs</code> e <code>Textures.vfs</code> dalla cartella <code>data/</code> del gioco:',
+        generateBtn: 'Genera e scarica ZIP',
+        card3: '3. Installazione',
+        step1: 'Estrai l\'archivio ZIP scaricato nella cartella <code>data/</code> del gioco in modo che <code>UI/</code> e <code>Textures/</code> si trovino accanto a <code>UI.vfs</code> e <code>Textures.vfs</code>.',
+        step2: 'Apri <code>data/config.ini</code> e imposta la risoluzione sotto <code>[Video]</code>:',
+        step3: 'Avvia il gioco. Per disinstallare, elimina le cartelle estratte <code>data/UI/</code> e <code>data/Textures/</code> (oppure solo i file generati se hai altre mod in quelle cartelle).',
+        footerNote: 'Strumento della community • Nessuna risorsa originale del gioco è ospitata o distribuita su questa pagina.',
+        logReady: '{n} file selezionati. Pronto per la generazione.',
+        logReading: 'Lettura archivi...',
+        logTex: 'Elaborazione schermate di caricamento...',
+        logPacking: 'Creazione archivio ZIP...',
+        logNoFiles: 'Nessun XML compatibile trovato. Assicurati di aver selezionato data/UI.vfs.',
+        logDone: 'Fatto! Inseriti {xml} XML e {tex} schermate di caricamento in {zip}'
+      }
+      };
+      let currentLang = 'en';
+      function t(key, vars = {}) {
+        let str = (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+        for (const [k, v] of Object.entries(vars)) {
+          str = str.replaceAll(`{${k}}`, String(v));
+        }
+        return str;
+      }
+      function setLanguage(lang) {
+        currentLang = I18N[lang] ? lang : 'en';
+        document.documentElement.lang = currentLang;
+        document.getElementById('langSelect').value = currentLang;
+        localStorage.setItem('pathologic_ui_lang', currentLang);
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          el.innerHTML = t(el.getAttribute('data-i18n'));
+        });
+      }
+      (function initLanguage() {
+        const saved = localStorage.getItem('pathologic_ui_lang');
+        const browser = (navigator.language || '').slice(0, 2).toLowerCase();
+        setLanguage(saved || (I18N[browser] ? browser : 'en'));
+      })();
+    const fileInput = document.getElementById('fileInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const logEl = document.getElementById('log');
+
+    function setRes(w, h) {
+      document.getElementById('width').value = w;
+      document.getElementById('height').value = h;
+      onResChange();
+    }
+
+    function onResChange() {
+      const w = parseInt(document.getElementById('width').value, 10) || 0;
+      const h = parseInt(document.getElementById('height').value, 10) || 0;
+      const isValid = w >= 1920 && h >= 1080 && (w > 1920 || h > 1200);
+      document.getElementById('resWarn').style.display = isValid ? 'none' : 'block';
+      generateBtn.disabled = !isValid || fileInput.files.length === 0;
+
+      if (w > 0 && h > 0) {
+        document.getElementById('iniPreview').textContent = `XRes = ${w}\nYRes = ${h}`;
+
+        const not329 = (w / h) < 3.0 || w <= 2560;
+        setCheckboxDisabled('fixMapZoom', w <= 2048);
+        setCheckboxDisabled('fixLoading', (w / h) <= 2.0);
+        setCheckboxDisabled('compactDialog', not329);
+        setCheckboxDisabled('centerHud', not329);
+      }
+    }
+
+    function setCheckboxDisabled(id, isDisabled) {
+      const cb = document.getElementById(id);
+      if (!cb) return;
+      cb.disabled = isDisabled;
+      if (cb.parentElement) {
+        cb.parentElement.classList.toggle('is-disabled', isDisabled);
+      }
+    }
+
+    function isOptionActive(id) {
+      const cb = document.getElementById(id);
+      return Boolean(cb && cb.checked && !cb.disabled);
+    }
+
+    fileInput.addEventListener('change', () => {
+      const count = fileInput.files.length;
+      onResChange();
+      logEl.textContent = count ? t('logReady', { n: count }) : '';
+    });
+
+    function createBlackBarForm(doc, name, x, y, w, h) {
+      const form = doc.createElement('form');
+      form.setAttribute('name', name);
+      form.setAttribute('x', String(x));
+      form.setAttribute('y', String(y));
+      form.setAttribute('w', String(w));
+      form.setAttribute('h', String(h));
+
+      const img = doc.createElement('image');
+      img.setAttribute('name', 'default');
+      img.setAttribute('x', '0.88');
+      img.setAttribute('y', '0.88');
+      img.setAttribute('w', '0.1');
+      img.setAttribute('h', '0.1');
+      img.textContent = 'ui/ui_group_2_4.tex';
+
+      form.appendChild(img);
+      return form;
+    }
+
+    function transformXmlText(xmlText, filename, dstW, dstH, stretchBg, compactDialog, fixMapZoom, centerHud) {
+      const match = filename.match(/_(\d+)x(\d+)\.xml$/i);
+      if (!match) return null;
+
+      const srcW = parseInt(match.at(1), 10);
+      const srcH = parseInt(match.at(2), 10);
+      const srcTag = `${srcW}x${srcH}`;
+      const dstTag = `${dstW}x${dstH}`;
+
+      const dxCenter = Math.trunc((dstW - srcW) / 2);
+      const dxFull = dstW - srcW;
+      const dyCenter = Math.trunc((dstH - srcH) / 2);
+      const dyFull = dstH - srcH;
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlText, 'application/xml');
+      const root = doc.documentElement;
+      const fname = filename.toLowerCase();
+
+      if (root.hasAttribute('name')) {
+        root.setAttribute('name', root.getAttribute('name').replace(srcTag, dstTag));
+      }
+
+      const forms = Array.from(doc.getElementsByTagName('form'));
+      const subforms = forms.filter(f => f !== root);
+
+      if (fname.startsWith('playerstat_')) {
+        if (centerHud && dstW > 2560) {
+          const hudW = Math.min(dstW, Math.round(dstH * (16 / 9)));
+          const hudX = Math.trunc((dstW - hudW) / 2);
+          root.setAttribute('x', hudX);
+          root.setAttribute('w', hudW);
+          root.setAttribute('h', dstH);
+        } else {
+          root.setAttribute('w', dstW);
+          root.setAttribute('h', dstH);
+        }
+      } else if (fname.startsWith(`inventory_${srcW}`)) {
+        root.setAttribute('w', dstW);
+        root.setAttribute('h', dstH);
+      } else if (subforms.length === 0 && parseInt(root.getAttribute('w') || 0, 10) === srcW) {
+        root.setAttribute('w', dstW);
+        root.setAttribute('h', dstH);
+        if (!stretchBg) {
+          const img = root.querySelector('image');
+          if (img) {
+            const origX = parseFloat(img.getAttribute('x'));
+            const origW = parseFloat(img.getAttribute('w'));
+            // Target width in 16:9 aspect ratio (original artwork proportion inside the texture)
+            const targetArtW = Math.min(dstW, dstH * (16 / 9));
+            const newW = origW * (dstW / targetArtW);
+            const newX = origX - (newW - origW) / 2;
+            img.setAttribute('x', newX.toFixed(7));
+            img.setAttribute('w', newW.toFixed(7));
+          }
+        }
+    } else if (fname.startsWith('dialog_') && !fname.startsWith('dialog_photo')) {
+      root.setAttribute('w', dstW);
+      root.setAttribute('h', dstH);
+      subforms.forEach(el => {
+        const name = el.getAttribute('name') || '';
+        const x = parseInt(el.getAttribute('x'), 10);
+        const y = parseInt(el.getAttribute('y'), 10);
+        const w = parseInt(el.getAttribute('w'), 10);
+
+        if (compactDialog) {
+          // Compact centered box: keep bar widths intact and shift everything to the center
+          el.setAttribute('x', x + dxCenter);
+        } else {
+          // Classic full-width cinematic letterbox bars
+          if (x === 0 && w === srcW) {
+            el.setAttribute('w', dstW);
+          } else if (new Set(['h_border_h_t_m', 'h_border_h_b_m', 'top_panel_middle_m']).has(name)) {
+            el.setAttribute('w', Math.max(2, w + dxFull));
+          } else if (name === 'top_panel_middle_r') {
+            el.setAttribute('x', x + dxFull);
+          } else if (x === 0 || name === 'top_panel_middle_l') {
+            // keep left segments in place
+          } else if (x + w === srcW) {
+            el.setAttribute('x', x + dxFull);
+          } else {
+            el.setAttribute('x', x + dxCenter);
+          }
+        }
+
+        if (y >= 700) el.setAttribute('y', y + dyFull);
+        else if (new Set(['border_v_l', 'border_v_r']).has(name)) el.setAttribute('h', parseInt(el.getAttribute('h'), 10) + dyFull);
+        else if (new Set(['border_b_l', 'border_b_r']).has(name)) el.setAttribute('y', y + dyFull);
+      });
+      } else if (fname.startsWith('map_') && !fname.startsWith('mapload')) {
+        root.setAttribute('w', dstW);
+        root.setAttribute('h', dstH);
+
+        if (fixMapZoom && dstW > 2048) {
+          const mapBoxW = 2048;
+          const innerDx = Math.trunc((dstW - mapBoxW) / 2);
+          const innerW = 2044;
+
+          subforms.forEach(el => {
+            const name = el.getAttribute('name') || '';
+            const x = parseInt(el.getAttribute('x'), 10);
+            const y = parseInt(el.getAttribute('y'), 10);
+            const w = parseInt(el.getAttribute('w'), 10);
+            const h = parseInt(el.getAttribute('h'), 10);
+
+            if (name === 'map') {
+              el.setAttribute('x', 2 + innerDx);
+              el.setAttribute('w', innerW);
+              el.setAttribute('h', h + dyFull);
+            } else if (new Set(['panel_middle_m', 'panel_bottom_middle_m']).has(name)) {
+              el.setAttribute('x', x + innerDx);
+              el.setAttribute('w', Math.max(2, w + (mapBoxW - srcW)));
+            } else if (new Set(['panel_middle_r', 'panel_bottom_middle_r']).has(name)) {
+              el.setAttribute('x', x + innerDx + (mapBoxW - srcW));
+            } else if (x + w === srcW) {
+              el.setAttribute('x', x + innerDx + (mapBoxW - srcW));
+            } else {
+              el.setAttribute('x', x + innerDx);
+            }
+
+            if (y >= 900) el.setAttribute('y', y + dyFull);
+            else if (new Set(['border_vert_left', 'border_vert_right']).has(name)) el.setAttribute('h', h + dyFull);
+          });
+
+          const firstChild = root.firstElementChild;
+          if (firstChild) {
+            const leftBar = createBlackBarForm(doc, 'map_bg_left', 0, 0, innerDx, dstH);
+            const rightBar = createBlackBarForm(doc, 'map_bg_right', innerDx + mapBoxW, 0, dstW - (innerDx + mapBoxW), dstH);
+            root.insertBefore(leftBar, firstChild);
+            root.insertBefore(rightBar, firstChild);
+          }
+        } else {
+          subforms.forEach(el => {
+            const name = el.getAttribute('name') || '';
+            const x = parseInt(el.getAttribute('x'), 10);
+            const y = parseInt(el.getAttribute('y'), 10);
+            const w = parseInt(el.getAttribute('w'), 10);
+            const h = parseInt(el.getAttribute('h'), 10);
+
+            if (name === 'map') {
+              el.setAttribute('w', w + dxFull);
+              el.setAttribute('h', h + dyFull);
+            } else if (new Set(['panel_middle_m', 'panel_bottom_middle_m']).has(name)) {
+              el.setAttribute('w', Math.max(2, w + dxFull));
+            } else if (new Set(['panel_middle_r', 'panel_bottom_middle_r']).has(name)) {
+              el.setAttribute('x', x + dxFull);
+            } else if (x + w === srcW) {
+              el.setAttribute('x', x + dxFull);
+            }
+
+            if (y >= 900) el.setAttribute('y', y + dyFull);
+            else if (new Set(['border_vert_left', 'border_vert_right']).has(name)) el.setAttribute('h', h + dyFull);
+          });
+        }
+      } else if (fname.startsWith('dialog_photo_')) {
+        root.setAttribute('w', parseInt(root.getAttribute('w'), 10) + dxFull);
+        root.setAttribute('h', parseInt(root.getAttribute('h'), 10) + dyFull);
+        subforms.forEach(el => {
+          el.setAttribute('x', parseInt(el.getAttribute('x'), 10) + dxCenter);
+          el.setAttribute('y', parseInt(el.getAttribute('y'), 10) + dyCenter);
+        });
+      } else if (fname.startsWith('inventory_base_')) {
+        root.setAttribute('w', dstW);
+        root.setAttribute('y', parseInt(root.getAttribute('y'), 10) + dyFull);
+        subforms.forEach(el => {
+          const name = el.getAttribute('name') || '';
+          const x = parseInt(el.getAttribute('x'), 10);
+          const y = parseInt(el.getAttribute('y'), 10);
+          if (name === 'dummy_left') {
+            el.setAttribute('w', Math.max(0, dxCenter));
+            el.setAttribute('y', y + dyFull);
+            el.innerHTML = '';
+          } else if (name === 'dummy_right') {
+            el.setAttribute('x', dstW - Math.max(0, dxCenter));
+            el.setAttribute('w', Math.max(0, dxCenter));
+            el.setAttribute('y', y + dyFull);
+            el.innerHTML = '';
+          } else {
+            el.setAttribute('x', x + dxCenter);
+            el.setAttribute('y', y + dyFull);
+          }
+        });
+      } else {
+        forms.forEach(el => {
+          const x = parseInt(el.getAttribute('x') || 0, 10);
+          const y = parseInt(el.getAttribute('y') || 0, 10);
+          const w = parseInt(el.getAttribute('w') || 0, 10);
+          const h = parseInt(el.getAttribute('h') || 0, 10);
+          if (x === 0 && y === 0 && w === srcW && (h === srcH || h === 978)) {
+            el.setAttribute('w', dstW);
+            el.setAttribute('h', h === srcH ? dstH : h + dyFull);
+          } else {
+            el.setAttribute('x', x + dxCenter);
+            el.setAttribute('y', y + dyCenter);
+          }
+        });
+      }
+
+      const serializer = new XMLSerializer();
+      return {
+        newName: filename.replace(srcTag, dstTag),
+        content: serializer.serializeToString(root)
+      };
+    }
+
+    // --- Read LP1C (.vfs) archives directly from File without loading the entire archive into RAM ---
+    async function extractFromVfs(file, filterFn) {
+      const headerBuf = await file.slice(0, 12).arrayBuffer();
+      const headerView = new DataView(headerBuf);
+      const magic = String.fromCharCode(...new Uint8Array(headerBuf, 0, 4));
+      if (magic !== 'LP1C') return [];
+
+      const count = headerView.getUint32(8, true);
+      // Read the Table of Contents (typically takes < 100 KB at the start of the archive)
+      const tocBuf = await file.slice(12, Math.min(file.size, 12 + count * 128)).arrayBuffer();
+      const tocBytes = new Uint8Array(tocBuf);
+      const tocView = new DataView(tocBuf);
+      const decoder = new TextDecoder('windows-1251');
+
+      let pos = 0;
+      const results = [];
+      for (let i = 0; i < count; i++) {
+        const nameLen = tocBytes.at(pos);
+        pos += 1;
+        const rawName = tocBytes.slice(pos, pos + nameLen);
+        const nullIdx = rawName.indexOf(0);
+        const name = decoder.decode(nullIdx >= 0 ? rawName.slice(0, nullIdx) : rawName).replace(/\\/g, '/');
+        pos += nameLen;
+
+        const size = tocView.getUint32(pos, true);
+        const offset = tocView.getUint32(pos + 4, true);
+        pos += 16; // size(4) + offset(4) + timestamp/flags(8)
+
+        if (filterFn(name)) {
+          const dataBuf = await file.slice(offset, offset + size).arrayBuffer();
+          results.push({ name: name.split('/').pop(), buffer: dataBuf });
+        }
+      }
+      return results;
+    }
+
+    // --- DXT1 -> RGBA decoder and loading screen repacker to BGRA8888 ---
+    function decodeDxt1(srcBytes, width, height) {
+      const rgba = new Uint8Array(width * height * 4);
+      const view = new DataView(srcBytes.buffer, srcBytes.byteOffset, srcBytes.byteLength);
+      let offset = 0;
+      const c = new Uint8Array(16);
+
+      for (let by = 0; by < height; by += 4) {
+        for (let bx = 0; bx < width; bx += 4) {
+          const c0 = view.getUint16(offset, true);
+          const c1 = view.getUint16(offset + 2, true);
+          const bits = view.getUint32(offset + 4, true);
+          offset += 8;
+
+          c.set([((c0 >> 11) & 31) * 255 / 31, ((c0 >> 5) & 63) * 255 / 63, (c0 & 31) * 255 / 31, 255], 0);
+          c.set([((c1 >> 11) & 31) * 255 / 31, ((c1 >> 5) & 63) * 255 / 63, (c1 & 31) * 255 / 31, 255], 4);
+
+          if (c0 > c1) {
+            for (let i = 0; i < 3; i++) {
+              c.set(Uint8Array.of(Math.round((2 * c.at(i) + c.at(4 + i)) / 3)), 8 + i);
+              c.set(Uint8Array.of(Math.round((c.at(i) + 2 * c.at(4 + i)) / 3)), 12 + i);
+            }
+            c.set(Uint8Array.of(255), 11);
+            c.set(Uint8Array.of(255), 15);
+          } else {
+            for (let i = 0; i < 3; i++) {
+              c.set(Uint8Array.of(Math.round((c.at(i) + c.at(4 + i)) / 2)), 8 + i);
+              c.set(Uint8Array.of(0), 12 + i);
+            }
+            c.set(Uint8Array.of(255), 11);
+            c.set(Uint8Array.of(0), 15);
+          }
+
+          for (let py = 0; py < 4; py++) {
+            for (let px = 0; px < 4; px++) {
+              const code = (bits >> (2 * (4 * py + px))) & 3;
+              const dstIdx = ((by + py) * width + (bx + px)) * 4;
+              rgba.set(c.slice(code * 4, code * 4 + 4), dstIdx);
+            }
+          }
+        }
+      }
+      return rgba;
+    }
+
+    function transformLoadingTex(buffer, dstW, dstH) {
+      const view = new DataView(buffer);
+      const origH = view.getUint32(12, true);
+      const origW = view.getUint32(16, true);
+      const fourcc = String.fromCharCode(...new Uint8Array(buffer, 84, 4));
+      if (fourcc !== 'DXT1') return null;
+
+      const rgba = decodeDxt1(new Uint8Array(buffer, 128), origW, origH);
+
+      // Draw decoded DDS onto a temporary canvas
+      const srcCanvas = document.createElement('canvas');
+      srcCanvas.width = origW;
+      srcCanvas.height = origH;
+      srcCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba.buffer), origW, origH), 0, 0);
+
+      // Calculate target fit area inside 2048x1024 (height 720, width scaled from 21:9 to dstAspect)
+      const dstAspect = dstW / dstH;
+      const baseAspect = 3440 / 1440;
+      const artW = Math.min(origW, Math.round(origW * (baseAspect / dstAspect)));
+      const artH = 720;
+
+      const dstCanvas = document.createElement('canvas');
+      dstCanvas.width = origW;
+      dstCanvas.height = origH;
+      const ctx = dstCanvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, origW, origH);
+      ctx.drawImage(srcCanvas, Math.trunc((origW - artW) / 2), Math.trunc((origH - artH) / 2), artW, artH);
+
+      const outRgba = ctx.getImageData(0, 0, origW, origH).data;
+      const outBuf = new ArrayBuffer(128 + origW * origH * 4);
+      const outView = new DataView(outBuf);
+      const outBytes = new Uint8Array(outBuf);
+
+      outBytes.set([0x44, 0x44, 0x53, 0x20], 0); // "DDS "
+      outView.setUint32(4, 124, true);
+      outView.setUint32(8, 0x100F, true);
+      outView.setUint32(12, origH, true);
+      outView.setUint32(16, origW, true);
+      outView.setUint32(20, origW * 4, true);
+      outView.setUint32(76, 32, true);
+      outView.setUint32(80, 0x41, true);
+      outView.setUint32(88, 32, true);
+      outView.setUint32(92, 0x00FF0000, true);
+      outView.setUint32(96, 0x0000FF00, true);
+      outView.setUint32(100, 0x000000FF, true);
+      outView.setUint32(104, 0xFF000000, true);
+      outView.setUint32(108, 0x1000, true);
+
+      // RGBA -> BGRA
+      for (let i = 0; i < outRgba.length; i += 4) {
+        const p = 128 + i;
+        outBytes.set([outRgba.at(i + 2), outRgba.at(i + 1), outRgba.at(i), 255], p);
+      }
+      return outBuf;
+    }
+
+    async function generateZip() {
+      const dstW = parseInt(document.getElementById('width').value, 10);
+      const dstH = parseInt(document.getElementById('height').value, 10);
+      if (dstW < 1920 || dstH < 1080 || (dstW <= 1920 && dstH <= 1200)) {
+        logEl.textContent = 'Error: Resolutions up to 1920×1200 are already supported natively by the game.';
+        return;
+      }
+
+      const stretchBg = document.getElementById('stretchBg').checked;
+      const compactDialog = isOptionActive('compactDialog');
+      const fixMapZoom = isOptionActive('fixMapZoom');
+      const fixLoading = isOptionActive('fixLoading');
+      const inputFiles = Array.from(fileInput.files);
+      const centerHud = isOptionActive('centerHud');
+
+      logEl.textContent = t('logReading');
+      const xmlItems = [];
+      const texItems = [];
+      const targetBaseTag = (dstW / dstH) <= 1.65 ? '1920x1200' : '1920x1080';
+
+      for (const f of inputFiles) {
+        if (!f.name.toLowerCase().endsWith('.vfs')) continue;
+        const extracted = await extractFromVfs(f, name => {
+          const n = name.toLowerCase();
+          const isTargetXml = n.endsWith('.xml') && n.includes(targetBaseTag);
+          const isLoadingTex = fixLoading && n.includes('loading_ultrawide_bk') && n.endsWith('.tex');
+          return isTargetXml || isLoadingTex;
+        });
+        for (const item of extracted) {
+          if (item.name.toLowerCase().endsWith('.xml')) {
+            xmlItems.push({ name: item.name, text: new TextDecoder('windows-1251').decode(item.buffer) });
+          } else {
+            texItems.push(item);
+          }
+        }
+      }
+
+      const zip = new JSZip();
+      let xmlCount = 0;
+      let texCount = 0;
+
+      if (xmlItems.length > 0) {
+        const uiFolder = zip.folder('UI');
+        for (const item of xmlItems) {
+          const res = transformXmlText(item.text, item.name, dstW, dstH, stretchBg, compactDialog, fixMapZoom, centerHud);
+          if (res) {
+            uiFolder.file(res.newName, res.content);
+            xmlCount++;
+          }
+        }
+      }
+
+      if (fixLoading && texItems.length > 0 && (dstW / dstH) > 2.0) {
+        logEl.textContent = t('logTex');
+        const texFolder = zip.folder('Textures');
+        for (const item of texItems) {
+          const outTex = transformLoadingTex(item.buffer, dstW, dstH);
+          if (outTex) {
+            texFolder.file(item.name, outTex);
+            texCount++;
+          }
+        }
+      }
+
+      if (xmlCount === 0 && texCount === 0) {
+        logEl.textContent = t('logNoFiles');
+        return;
+      }
+
+      logEl.textContent = t('logPacking');
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Pathologic_CustomUI_${dstW}x${dstH}.zip`;
+      link.click();
+      logEl.textContent = t('logDone', { xml: xmlCount, tex: texCount, zip: `Pathologic_CustomUI_${dstW}x${dstH}.zip` });
+    }
+
+    onResChange()
+    initLanguage()
+  </script>
+</body>
+</html>
