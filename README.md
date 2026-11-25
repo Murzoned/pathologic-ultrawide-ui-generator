@@ -1,5 +1,7 @@
 # Pathologic Classic HD — Custom Resolution UI Generator
 
+**Open the Live Generator:** https://murzoned.github.io/pathologic-ultrawide-ui-generator/
+
 A browser-based tool that generates native UI layouts and corrected loading screens for **Pathologic Classic HD** at any custom widescreen or ultrawide resolution (`21:9`, `32:9`, `16:10`, `48:9`, etc.) directly from your original game archives (`UI.vfs` and `Textures.vfs`).
 
 * **100% Client-Side:** Archives are parsed locally in your browser via `File.slice()`. No game assets are stored in this repository or uploaded to any server.
